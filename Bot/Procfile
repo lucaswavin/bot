@@ -1,0 +1,1 @@
+web: python enhanced_decision_pattern_analyzer.py --data ./data/ethusdt_data_20may_31jul.csv --min-confidence 0.65 --export-decisions
