@@ -588,7 +588,7 @@ class BeastModeAnalyzer:
                 ))
             ])
         
-        # SUPPORT VECTOR MACHINES
+        # SUPPORT VECTOR MACHINES (solo RBF, Poly removido por lentitud)
         models.extend([
             ('SVM_Beast_RBF', SVC(
                 kernel='rbf',
@@ -596,13 +596,6 @@ class BeastModeAnalyzer:
                 gamma='scale',
                 probability=True,
                 random_state=282930
-            )),
-            ('SVM_Beast_Poly', SVC(
-                kernel='poly',
-                degree=3,
-                C=10,
-                probability=True,
-                random_state=313233
             ))
         ])
         
@@ -1143,4 +1136,4 @@ def main():
         return 1
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main())'
