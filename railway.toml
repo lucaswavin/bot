@@ -5,7 +5,7 @@ NIXPACKS_PYTHON_VERSION = "3.11"
 aptPackages = ["ta-lib-dev", "build-essential"]
 
 [phases.install]
-cmds = ["pip3 install -r requirements.txt"]
+cmds = ["pip3 install -r Bot/requirements.txt"]
 
 [start]
-cmd = "python3 backtesting.py -c 500 -t 30"
+cmd = "python3 Bot/backtesting.py -c 500 -t 30"
