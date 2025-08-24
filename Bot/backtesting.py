@@ -5,6 +5,8 @@ from itertools import product
 import warnings
 import json
 from datetime import datetime
+import sys
+import argparse
 
 warnings.filterwarnings('ignore')
 
@@ -328,63 +330,195 @@ class MegaETHBacktester:
         
         return trades
     
-    def run_mega_backtest_2000(self):
-        """MEGA BACKTEST 2000+ combinaciones - Solo progreso + resultados"""
-        print("🚀 Iniciando MEGA BACKTEST 2000+ combinaciones...")
+    def run_backtest_flexible(self, max_combinations=2000):
+        """BACKTEST flexible - puedes especificar cuántas combinaciones"""
+        print(f"🚀 Iniciando BACKTEST {max_combinations} combinaciones...")
         
-        # Entry filters (SIN CCI como entrada)
-        ema_single = [None, 5, 8, 9, 13, 17, 21, 26, 34, 50, 89, 100]
-        ema_directions = [None, 'above', 'below', 'cross_above']
-        ema_pairs = [(9, 21), (13, 34), (21, 50), (50, 200)]
-        
-        rsi_configs = [
+        # Configuraciones base
+        base_ema_single = [None, 9, 13, 21, 34, 50, 89]
+        base_ema_directions = [None, 'above', 'below']
+        base_rsi_configs = [
             None,
             {'rsi_period': 14, 'rsi_min': 30, 'rsi_max': 70},
             {'rsi_period': 14, 'rsi_min': 20, 'rsi_max': 80},
-            {'rsi_period': 9, 'rsi_min': 25, 'rsi_max': 75},
-            {'rsi_period': 14, 'rsi_momentum': True},
-            {'rsi_period': 21, 'rsi_min': 35, 'rsi_max': 65}
         ]
+        base_volume_configs = [None, 1.5, 2.0]
+        base_stoch_configs = [None, 20]
+        base_macd_configs = [None, True]
+        base_modes = ['wick', 'close']
         
-        volume_configs = [None, 1.2, 1.5, 2.0, 2.5]
-        stoch_configs = [None, 15, 20, 25, 30]
-        macd_configs = [None, True, 'fast']
-        williams_configs = [None, -80, -75, -70]
-        adx_configs = [None, 20, 25, 30]
-        bb_configs = [None, 'lower_half', 'lower_third']
+        # Exit strategies base
+        base_exit_strategies = []
         
-        modes = ['wick', 'close', 'body']
+        # CCI exits principales
+        for level in [100, 120, 140, 150, 160, 180]:
+            base_exit_strategies.append({'cci_exit_level': level})
         
-        # Exit strategies - CCI COMO PRINCIPAL
-        exit_strategies = []
+        # ATR básicos
+        for mult in [1.5, 2.0, 2.5]:
+            base_exit_strategies.append({'atr_multiplier': mult})
         
-        # CCI exits - LA SALIDA PRINCIPAL
-        for level in [70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 200]:
-            exit_strategies.append({'cci_exit_level': level})
+        # EMA trailing
+        for period in [21, 50]:
+            base_exit_strategies.append({'ema_trailing_period': period})
         
-        # ATR exits
-        for mult in [1.0, 1.2, 1.5, 1.8, 2.0, 2.5, 3.0]:
-            exit_strategies.append({'atr_multiplier': mult})
-            exit_strategies.append({'atr_multiplier': mult, 'atr_period': 10})
+        # Calcular factor de reducción basado en max_combinations
+        estimated_combinations = (
+            len(base_modes) * len(base_ema_single) * len(base_ema_directions) * 
+            len(base_rsi_configs) * len(base_volume_configs) * len(base_stoch_configs) * 
+            len(base_macd_configs) * len(base_exit_strategies)
+        )
         
-        # EMA exits
-        for period in [9, 13, 21, 34, 50]:
-            exit_strategies.append({'ema_trailing_period': period})
+        print(f"📊 Configuraciones base estimadas: {estimated_combinations}")
         
-        # RSI exits
-        for level in [70, 75, 80, 85]:
-            exit_strategies.append({'rsi_exit_level': level, 'rsi_period': 14})
+        # Ajustar configuraciones según max_combinations
+        if max_combinations <= 100:
+            # Ultra reducido
+            ema_single = [None, 21]
+            ema_directions = [None, 'above']
+            rsi_configs = [None, {'rsi_period': 14, 'rsi_min': 30, 'rsi_max': 70}]
+            volume_configs = [None, 1.5]
+            stoch_configs = [None]
+            macd_configs = [None, True]
+            modes = ['wick']
+            exit_strategies = [
+                {'cci_exit_level': 150}, {'atr_multiplier': 2.0}, {'ema_trailing_period': 21}
+            ] * 8  # Duplicar para llegar a ~100
+            
+        elif max_combinations <= 300:
+            # Reducido
+            ema_single = [None, 21, 50]
+            ema_directions = [None, 'above']
+            rsi_configs = base_rsi_configs
+            volume_configs = [None, 1.5]
+            stoch_configs = [None, 20]
+            macd_configs = [None, True]
+            modes = ['wick', 'close']
+            exit_strategies = base_exit_strategies[:12]  # Solo primeros 12
+            
+        elif max_combinations <= 1000:
+            # Medio
+            ema_single = base_ema_single[:5]  # Solo primeros 5
+            ema_directions = base_ema_directions
+            rsi_configs = base_rsi_configs
+            volume_configs = base_volume_configs
+            stoch_configs = base_stoch_configs
+            macd_configs = base_macd_configs
+            modes = base_modes
+            exit_strategies = base_exit_strategies
+            
+        else:
+            # Completo 2000+
+            ema_single = base_ema_single + [5, 8, 17, 26, 100]
+            ema_directions = base_ema_directions + ['cross_above']
+            rsi_configs = base_rsi_configs + [
+                {'rsi_period': 9, 'rsi_min': 25, 'rsi_max': 75},
+                {'rsi_period': 14, 'rsi_momentum': True}
+            ]
+            volume_configs = base_volume_configs + [1.2, 2.5]
+            stoch_configs = base_stoch_configs + [15, 25, 30]
+            macd_configs = base_macd_configs + ['fast']
+            modes = base_modes + ['body']
+            
+            # Exit strategies expandidas
+            exit_strategies = []
+            for level in [70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 200]:
+                exit_strategies.append({'cci_exit_level': level})
+            for mult in [1.0, 1.2, 1.5, 1.8, 2.0, 2.5, 3.0]:
+                exit_strategies.append({'atr_multiplier': mult})
+            for period in [9, 13, 21, 34, 50]:
+                exit_strategies.append({'ema_trailing_period': period})
+            for pct in [2, 5, 10]:
+                exit_strategies.append({'fixed_profit_pct': pct})
         
-        # Fixed exits
-        for pct in [2, 3, 5, 8, 10]:
-            exit_strategies.append({'fixed_profit_pct': pct})
+        total_combinations = 0
+        all_strategies = []
+        strategy_id = 0
         
-        # Stop + TP
-        exit_strategies.extend([
-            {'stop_loss_pct': 2, 'take_profit_pct': 6},
-            {'stop_loss_pct': 3, 'take_profit_pct': 9},
-            {'stop_loss_pct': 1.5, 'take_profit_pct': 4.5},
-        ])
+        print("📊 Generando y ejecutando configuraciones...")
+        
+        # Generar combinaciones
+        for mode in modes:
+            for ema_period, ema_dir in product(ema_single, ema_directions):
+                if ema_period is None and ema_dir is not None:
+                    continue
+                    
+                for rsi_config in rsi_configs:
+                    for vol_factor in volume_configs:
+                        for stoch_level in stoch_configs:
+                            for macd_config in macd_configs:
+                                
+                                # Build entry config
+                                entry_config = {'mode': mode}
+                                
+                                if ema_period:
+                                    entry_config['ema_period'] = ema_period
+                                    entry_config['ema_direction'] = ema_dir
+                                
+                                if rsi_config:
+                                    entry_config.update(rsi_config)
+                                
+                                if vol_factor:
+                                    entry_config['volume_factor'] = vol_factor
+                                
+                                if stoch_level:
+                                    entry_config['stoch_oversold'] = stoch_level
+                                
+                                if macd_config == 'fast':
+                                    entry_config['macd_fast'] = True
+                                elif macd_config:
+                                    entry_config['macd_bullish'] = True
+                                
+                                # Test with exits
+                                for exit_config in exit_strategies:
+                                    strategy_id += 1
+                                    total_combinations += 1
+                                    
+                                    # Stop si alcanzamos max_combinations
+                                    if total_combinations > max_combinations:
+                                        break
+                                    
+                                    try:
+                                        trades = self.backtest_strategy(entry_config, exit_config)
+                                        metrics = self.calculate_metrics(trades)
+                                        
+                                        if metrics and metrics['total_trades'] >= 3:
+                                            strategy_result = {
+                                                'strategy_id': strategy_id,
+                                                'entry_config': entry_config.copy(),
+                                                'exit_config': exit_config.copy(),
+                                                'metrics': metrics,
+                                                'score': self.calculate_score(metrics)
+                                            }
+                                            all_strategies.append(strategy_result)
+                                    
+                                    except Exception as e:
+                                        continue
+                                    
+                                    # Progress
+                                    if total_combinations % max(1, max_combinations // 20) == 0:
+                                        progress_pct = (total_combinations / max_combinations) * 100
+                                        print(f"✅ Procesando configuración {total_combinations}/{max_combinations} ({progress_pct:.1f}%)... Válidas: {len(all_strategies)}")
+                                
+                                if total_combinations > max_combinations:
+                                    break
+                            if total_combinations > max_combinations:
+                                break
+                        if total_combinations > max_combinations:
+                            break
+                    if total_combinations > max_combinations:
+                        break
+                if total_combinations > max_combinations:
+                    break
+            if total_combinations > max_combinations:
+                break
+        
+        print(f"🎯 BACKTEST COMPLETADO! {total_combinations} combinaciones probadas")
+        print(f"🏆 {len(all_strategies)} estrategias válidas encontradas")
+        
+        # Sort by score
+        all_strategies.sort(key=lambda x: x['score'], reverse=True)
+        return all_strategies[:min(100, len(all_strategies))]  # Top 100 max
         
         total_combinations = 0
         all_strategies = []
@@ -671,14 +805,24 @@ def load_eth_data(filename):
         return None
 
 
-# MAIN EXECUTION
+# MAIN EXECUTION CON ARGUMENTOS
 if __name__ == "__main__":
-    print("🚀🚀🚀 MEGA BACKTEST RAILWAY - 2000+ COMBINATIONS 🚀🚀🚀")
+    parser = argparse.ArgumentParser(description='ETH Mega Backtesting System')
+    parser.add_argument('--combinations', '-c', type=int, default=2000, 
+                       help='Número de combinaciones a probar (default: 2000)')
+    parser.add_argument('--top', '-t', type=int, default=50,
+                       help='Número de top estrategias a mostrar (default: 50)')
+    parser.add_argument('--data', '-d', type=str, default="data/ethusdt_data_20may_31jul.csv",
+                       help='Ruta del archivo de datos (default: data/ethusdt_data_20may_31jul.csv)')
+    
+    args = parser.parse_args()
+    
+    print(f"🚀🚀🚀 MEGA BACKTEST RAILWAY - {args.combinations} COMBINATIONS 🚀🚀🚀")
     print("💡 CCI usado SOLO como estrategia de SALIDA")
     
     # Load data
     print("📈 Loading ETH data...")
-    data = load_eth_data("data/ethusdt_data_20may_31jul.csv")
+    data = load_eth_data(args.data)
     
     if data is not None:
         print(f"✅ Data loaded: {len(data)} candles")
@@ -686,15 +830,82 @@ if __name__ == "__main__":
         # Create mega backtester
         mega_backtester = MegaETHBacktester(data)
         
-        # Run MEGA backtest
-        best_strategies = mega_backtester.run_mega_backtest_2000()
+        # Run flexible backtest
+        best_strategies = mega_backtester.run_backtest_flexible(args.combinations)
         
         if best_strategies:
-            # Print results
-            mega_backtester.print_results(best_strategies)
+            # Print results (usando args.top)
+            print("\n" + "="*100)
+            print(f"🏆 TOP {min(args.top, len(best_strategies))} MEJORES ESTRATEGIAS - {args.combinations} COMBINACIONES")
+            print("="*100)
+            
+            for i, strategy in enumerate(best_strategies[:args.top]):
+                metrics = strategy['metrics']
+                entry = strategy['entry_config']
+                exit_cfg = strategy['exit_config']
+                
+                print(f"\n#{i+1} - SCORE: {strategy['score']:.3f}")
+                print(f"📊 Trades: {metrics['total_trades']} | Win Rate: {metrics['win_rate']:.1f}%")
+                print(f"💰 Return: {metrics['total_return']:.2f}% | PF: {metrics['profit_factor']:.2f}")
+                print(f"📉 Max DD: {metrics['max_drawdown']:.2f}% | Sharpe: {metrics['sharpe_ratio']:.2f}")
+                
+                # Config string
+                config_parts = [f"Mode: {entry['mode']}"]
+                
+                if 'ema_period' in entry:
+                    config_parts.append(f"EMA {entry['ema_period']} ({entry.get('ema_direction', 'N/A')})")
+                elif 'ema_fast' in entry:
+                    config_parts.append(f"EMA {entry['ema_fast']}/{entry['ema_slow']}")
+                
+                filters = []
+                if 'rsi_min' in entry:
+                    rsi_p = entry.get('rsi_period', 14)
+                    filters.append(f"RSI{rsi_p}({entry['rsi_min']}-{entry['rsi_max']})")
+                if entry.get('rsi_momentum'):
+                    filters.append("RSI↗")
+                if 'volume_factor' in entry:
+                    filters.append(f"Vol>{entry['volume_factor']}x")
+                if 'stoch_oversold' in entry:
+                    filters.append(f"Stoch<{entry['stoch_oversold']}")
+                if entry.get('macd_bullish') or entry.get('macd_fast'):
+                    macd_type = "Fast" if entry.get('macd_fast') else "Std"
+                    filters.append(f"MACD{macd_type}")
+                if 'williams_oversold' in entry:
+                    filters.append(f"Williams<{entry['williams_oversold']}")
+                if 'adx_min' in entry:
+                    filters.append(f"ADX>{entry['adx_min']}")
+                if 'bb_position' in entry:
+                    bb_pos = entry['bb_position'].replace('_', ' ').title()
+                    filters.append(f"BB-{bb_pos}")
+                
+                if filters:
+                    config_parts.extend(filters)
+                
+                # Exit config
+                exit_parts = []
+                for key, value in exit_cfg.items():
+                    if key == 'cci_exit_level':
+                        exit_parts.append(f"CCI Exit {value}")
+                    elif key == 'atr_multiplier':
+                        atr_period = exit_cfg.get('atr_period', 14)
+                        exit_parts.append(f"ATR {value}x (P{atr_period})")
+                    elif key == 'ema_trailing_period':
+                        exit_parts.append(f"EMA Trail {value}")
+                    elif key == 'rsi_exit_level':
+                        rsi_period = exit_cfg.get('rsi_period', 14)
+                        exit_parts.append(f"RSI{rsi_period} Exit {value}")
+                    elif key == 'fixed_profit_pct':
+                        exit_parts.append(f"Fixed TP {value}%")
+                    elif key == 'stop_loss_pct':
+                        tp_pct = exit_cfg.get('take_profit_pct', 'N/A')
+                        exit_parts.append(f"SL {value}% / TP {tp_pct}%")
+                
+                print(f"🔹 Config: {' | '.join(config_parts)} | Exit: {' | '.join(exit_parts)}")
+                print("-" * 80)
             
             # Save results
-            with open('mega_backtest_results.json', 'w') as f:
+            filename = f'backtest_results_{args.combinations}_combinations.json'
+            with open(filename, 'w') as f:
                 # Convert numpy types
                 for strategy in best_strategies:
                     for key, value in strategy['metrics'].items():
@@ -702,13 +913,13 @@ if __name__ == "__main__":
                             strategy['metrics'][key] = float(value)
                 json.dump(best_strategies, f, indent=2)
             
-            print(f"\n🎯 MEGA BACKTEST COMPLETED!")
+            print(f"\n🎯 BACKTEST COMPLETED!")
             print(f"📊 Total valid strategies found: {len(best_strategies)}")
             if best_strategies:
                 print(f"🏆 Best strategy return: {best_strategies[0]['metrics']['total_return']:.2f}%")
                 print(f"🥇 Best profit factor: {max(s['metrics']['profit_factor'] for s in best_strategies):.2f}")
                 print(f"🎯 Best win rate: {max(s['metrics']['win_rate'] for s in best_strategies):.1f}%")
-            print(f"💾 Results saved to mega_backtest_results.json")
+            print(f"💾 Results saved to {filename}")
         else:
             print("❌ No valid strategies found")
     else:
