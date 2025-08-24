@@ -1,1 +1,1 @@
-worker: python3 backtesting.py -c 500 -t 30
+worker: python3 backtesting.py -c 20 -t 30
