@@ -19,7 +19,7 @@ installPhase = """
 # startCommand = "python main.py -c 300 -t 20"
 
 # ⚡ BALANCEADO (15-25 min) - RECOMENDADO
-startCommand = "python main.py -c 500 -t 30"
+startCommand = "python backtesting.py -c 500 -t 30"
 
 # 🔥 COMPLETO (30-60 min)
 # startCommand = "python main.py -c 1000 -t 50"
