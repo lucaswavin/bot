@@ -1,8 +1,11 @@
-[build]
-builder = "nixpacks"
+[variables]
+NIXPACKS_PYTHON_VERSION = "3.11"
 
-[build.nixpacks]
+[phases.setup]
 aptPackages = ["ta-lib-dev", "build-essential"]
 
-[deploy]
-startCommand = "python backtesting.py -c 500 -t 30"
+[phases.install]
+cmds = ["pip3 install -r requirements.txt"]
+
+[start]
+cmd = "python3 backtesting.py -c 500 -t 30"
