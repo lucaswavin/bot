@@ -1,1 +1,0 @@
-web: python beast_mode_analyzer.py --data ./data/ethusdt_data_20may_31jul.csv --target-accuracy 0.80
