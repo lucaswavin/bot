@@ -1,0 +1,32 @@
+[build]
+builder = "nixpacks"
+
+[build.nixpacksSettings]
+# Instalar TA-Lib antes de pip install
+installPhase = """
+  apt-get update
+  apt-get install -y ta-lib-dev build-essential
+  pip install --no-cache-dir -r requirements.txt
+"""
+
+[deploy]
+# ELIGE UNA OPCIÓN:
+
+# 🧪 TESTING (2-3 min)
+# startCommand = "python main.py -c 100 -t 10"
+
+# 🚀 RÁPIDO (5-10 min)
+# startCommand = "python main.py -c 300 -t 20"
+
+# ⚡ BALANCEADO (15-25 min) - RECOMENDADO
+startCommand = "python main.py -c 500 -t 30"
+
+# 🔥 COMPLETO (30-60 min)
+# startCommand = "python main.py -c 1000 -t 50"
+
+# 🚀🚀 BEAST MODE (1-2 horas)
+# startCommand = "python main.py -c 2000 -t 100"
+
+[deploy.env]
+PYTHONUNBUFFERED = "1"
+TZ = "UTC"
